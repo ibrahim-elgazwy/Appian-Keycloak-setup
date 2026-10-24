@@ -1,5 +1,8 @@
 .env
-certs/*.key
+certs/**/*.key
+# lab server: CSR / issued certs work folder and install backups (server-specific)
+certs/adcs/
+certs/backup-*/
 certs/*.srl
 node_modules/
 v1.2-guide
