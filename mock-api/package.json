@@ -1,0 +1,13 @@
+{
+  "name": "aqarat-mock-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local mock of the AQARAT backend API (validates Keycloak JWTs itself, CORS, rate limit, server-side Appian call)",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "jose": "6.2.13"
+  }
+}

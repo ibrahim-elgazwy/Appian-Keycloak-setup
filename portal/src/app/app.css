@@ -1,0 +1,26 @@
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #0b2e4f;
+  color: #fff;
+}
+
+.brand {
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+  text-decoration: none;
+}
+
+.brand span {
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}

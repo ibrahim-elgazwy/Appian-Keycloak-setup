@@ -1,0 +1,11 @@
+[req]
+distinguished_name = dn
+prompt = no
+[dn]
+CN = keycloak.aqarat.lab
+O = AQARAT POC
+[ext]
+basicConstraints = CA:false
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = DNS:keycloak.aqarat.lab, DNS:portal.aqarat.lab, DNS:api.aqarat.lab, DNS:nas.aqarat.lab, DNS:localhost
