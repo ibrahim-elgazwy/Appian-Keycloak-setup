@@ -674,6 +674,41 @@
       ]
     }
   ],
+  "authenticationFlows": [
+    {
+      "id": "5f0c9d2e-7a41-4b8e-9c3d-1a2b3c4d5e60",
+      "alias": "nas-only browser",
+      "description": "Citizen clients: existing SSO session, else straight to NAS (no Keycloak login page).",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "authenticatorConfig": "redirect to nas",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "redirect to nas",
+      "config": {
+        "defaultProvider": "nas"
+      }
+    }
+  ],
   "clients": [
     {
       "clientId": "aqarat-portal",
@@ -693,6 +728,9 @@
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "${AQ_PORTAL_URL}##${AQ_PORTAL_URL}/##${AQ_PORTAL_URL}/signin"
+      },
+      "authenticationFlowBindingOverrides": {
+        "browser": "5f0c9d2e-7a41-4b8e-9c3d-1a2b3c4d5e60"
       },
       "defaultClientScopes": [
         "web-origins",
@@ -723,6 +761,9 @@
       ],
       "attributes": {
         "post.logout.redirect.uris": "https://appian.aqarat.lab/suite/*##${AQ_PORTAL_URL}/*"
+      },
+      "authenticationFlowBindingOverrides": {
+        "browser": "5f0c9d2e-7a41-4b8e-9c3d-1a2b3c4d5e60"
       },
       "defaultClientScopes": [
         "web-origins",
