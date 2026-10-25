@@ -35,6 +35,8 @@ spec:
             - {name: KC_HTTPS_CERTIFICATE_KEY_FILE, value: /opt/keycloak/conf/certs/tls.key}
             - {name: KC_TRUSTSTORE_PATHS, value: /opt/keycloak/conf/certs/ca.crt}
             - {name: KC_HEALTH_ENABLED, value: "true"}
+            # HTTP/1.1 only: shared IP + certificate + SNI routing; HTTP/2 connection reuse would reach the wrong pod.
+            - {name: QUARKUS_HTTP_HTTP2, value: "false"}
             - name: KC_BOOTSTRAP_ADMIN_USERNAME
               valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: KC_ADMIN_USERNAME}}
             - name: KC_BOOTSTRAP_ADMIN_PASSWORD
