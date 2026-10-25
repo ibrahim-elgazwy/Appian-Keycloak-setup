@@ -28,7 +28,8 @@ Client Secret             $secret
 Protocol                  OpenID Connect Discovery 1.0
 Discovery Endpoint        $R/.well-known/openid-configuration
 UserInfo Endpoint         (leave empty)
-End Session Endpoint      $R/protocol/openid-connect/logout
+End Session Endpoint      $R/protocol/openid-connect/logout?post_logout_redirect_uri=https://portal.aqarat.lab/signin
+                          (type the address unencoded - Appian encodes it; sign-out then lands on the AQARAT sign-in page)
 Scope                     openid profile email
 Username Claim            preferred_username
 Authentication Group      AQARAT OIDC Users
