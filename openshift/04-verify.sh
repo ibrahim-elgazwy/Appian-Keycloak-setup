@@ -2,7 +2,7 @@
 # Check the deployed stack from this PC through the cluster router.
 #  1) pods ready and each public name answering with the expected certificate (works without hosts entries);
 #  2) scripts/verify-local.sh against the port-less URLs (curl --resolve, works without hosts entries);
-#  3) the two Node checks - only when *.aqarat.lab already resolve to the cluster on this PC (hosts file / DNS).
+#  3) the two Node checks: realm setup and broker logins for every persona (also without hosts entries).
 # Secrets are read from the aqarat-sso-env Secret into a private temp file that is removed on exit.
 source "$(dirname "$0")/common.sh"
 need_login
@@ -26,19 +26,17 @@ for h in keycloak nas api portal; do
 done
 
 ENV_FILE=$(umask 077; mktemp); trap 'rm -f "$ENV_FILE"' EXIT; export ENV_FILE
-oc extract secret/aqarat-sso-env --to=- 2>/dev/null | awk '/^# /{k=$2; next} {print k "=" $0}' > "$ENV_FILE"
+oc get secret aqarat-sso-env -o go-template='{{range $k,$v := .data}}{{$k}}={{$v | base64decode}}{{"\n"}}{{end}}' > "$ENV_FILE"
 
 step "API, tokens and CORS (scripts/verify-local.sh)"
 AQ_RESOLVE_IP=$CLUSTER_IP bash scripts/verify-local.sh || fail=1
 
 step "realm setup and broker logins (Node checks)"
-resolved=$(node -e "require('dns').lookup('keycloak.aqarat.lab',(e,a)=>console.log(e?'':a))")
-if [ "$resolved" = "$CLUSTER_IP" ]; then
-  NODE_EXTRA_CA_CERTS=certs/ca.crt node scripts/inspect-nas-setup.mjs || fail=1
-  NODE_EXTRA_CA_CERTS=certs/ca.crt node scripts/verify-broker-login.mjs || fail=1
-else
-  echo "SKIP  keycloak.aqarat.lab resolves to '${resolved:-nothing}' here, not $CLUSTER_IP - add the hosts entries, then re-run"
-fi
+# resolve-hook.cjs points *.aqarat.lab at the cluster inside these Node processes only (no hosts entries needed).
+export AQ_RESOLVE_IP=$CLUSTER_IP NODE_OPTIONS="--require ./openshift/resolve-hook.cjs"
+NODE_EXTRA_CA_CERTS=certs/ca.crt node scripts/inspect-nas-setup.mjs || fail=1
+NODE_EXTRA_CA_CERTS=certs/ca.crt node scripts/verify-broker-login.mjs || fail=1
+unset NODE_OPTIONS
 
 echo
 [ "$fail" = 0 ] && echo "ALL CHECKS PASSED" || { echo "SOME CHECKS FAILED"; exit 1; }

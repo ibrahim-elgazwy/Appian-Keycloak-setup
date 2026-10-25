@@ -32,7 +32,7 @@ Run from the repository root (Git Bash on Windows, or Linux/macOS):
 | 1 | `bash openshift/01-build-push.sh` | Builds `aqarat-sso-mock-api` and `aqarat-sso-portal` inside OpenShift from the committed code, tagged with the git commit (`BUILD=docker` builds locally and pushes) |
 | 2 | `bash openshift/02-secrets.sh` | Creates `aqarat-sso-env` with new random secrets (never overwritten) and `aqarat-tls` from `certs/` |
 | 3 | `bash openshift/03-deploy.sh` | Realm ConfigMaps, services, workloads, routes; waits until all are ready |
-| 4 | `bash openshift/04-verify.sh` | Pods, TLS on all four names, API/token/CORS checks; Node checks once hosts point to the cluster |
+| 4 | `bash openshift/04-verify.sh` | Pods, TLS on all four names, API/token/CORS checks, realm setup and broker logins for every persona (no hosts entries needed) |
 | 5 | `bash openshift/05-appian-sheet.sh` | Prints the Appian OIDC values (`--show-secret` adds the client secret) |
 
 Then put `192.168.52.12 keycloak.aqarat.lab nas.aqarat.lab api.aqarat.lab portal.aqarat.lab` in the hosts file of the

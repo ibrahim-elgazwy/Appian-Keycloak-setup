@@ -10,7 +10,7 @@ secret="(run with --show-secret, or Keycloak admin console: aqarat-poc -> Client
 if [ "${1:-}" = --show-secret ]; then
   need_login
   C=(-s --cacert certs/ca.crt --ssl-no-revoke --resolve "keycloak.aqarat.lab:443:$CLUSTER_IP")
-  env=$(oc extract secret/aqarat-sso-env --keys=KC_ADMIN_USERNAME,KC_ADMIN_PASSWORD --to=- 2>/dev/null | awk '/^# /{k=$2; next} {print k "=" $0}')
+  env=$(oc get secret aqarat-sso-env -o go-template='{{range $k,$v := .data}}{{$k}}={{$v | base64decode}}{{"\n"}}{{end}}')
   user=$(echo "$env" | sed -n 's/^KC_ADMIN_USERNAME=//p'); pass=$(echo "$env" | sed -n 's/^KC_ADMIN_PASSWORD=//p')
   tok=$(curl "${C[@]}" --data-urlencode "username=$user" --data-urlencode "password=$pass" -d grant_type=password -d client_id=admin-cli \
     "$KC/realms/master/protocol/openid-connect/token" | node -pe "JSON.parse(require('fs').readFileSync(0)).access_token")
