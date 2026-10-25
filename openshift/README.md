@@ -20,7 +20,7 @@ from `/config.json` (ConfigMap `sso-portal-config`) and falls back to `src/app/s
    push images and create Secrets, but cannot deploy.
 2. Hosts entries on your PC (no DNS for these names):
    `192.168.52.12 api.crc.testing default-route-openshift-image-registry.apps-crc.testing`
-3. Docker: add `default-route-openshift-image-registry.apps-crc.testing` to `insecure-registries`, then log in with
+3. Only for `BUILD=docker`: in Docker, add `default-route-openshift-image-registry.apps-crc.testing` to `insecure-registries`, then log in with
    `docker login default-route-openshift-image-registry.apps-crc.testing -u registry-dev --password-stdin < ~/.aqarat/registry-dev.token`
 
 ## Deploy
@@ -29,7 +29,7 @@ Run from the repository root (Git Bash on Windows, or Linux/macOS):
 
 | Step | Command | What it does |
 |---|---|---|
-| 1 | `bash openshift/01-build-push.sh` | Builds `aqarat-sso-mock-api` and `aqarat-sso-portal` and pushes them, tagged with the git commit |
+| 1 | `bash openshift/01-build-push.sh` | Builds `aqarat-sso-mock-api` and `aqarat-sso-portal` inside OpenShift from the committed code, tagged with the git commit (`BUILD=docker` builds locally and pushes) |
 | 2 | `bash openshift/02-secrets.sh` | Creates `aqarat-sso-env` with new random secrets (never overwritten) and `aqarat-tls` from `certs/` |
 | 3 | `bash openshift/03-deploy.sh` | Realm ConfigMaps, services, workloads, routes; waits until all are ready |
 | 4 | `bash openshift/04-verify.sh` | Pods, TLS on all four names, API/token/CORS checks; Node checks once hosts point to the cluster |
