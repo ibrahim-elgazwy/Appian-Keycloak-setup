@@ -28,6 +28,7 @@ services:
   portal:
     <<: *server-defaults
     build: ./portal
+    user: "1000:0"          # unprivileged nginx; same uid as the key owner set by scripts/server-cert.sh
     depends_on:
       keycloak:
         condition: service_healthy

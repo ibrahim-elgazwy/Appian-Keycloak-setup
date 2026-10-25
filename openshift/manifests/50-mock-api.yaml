@@ -1,0 +1,44 @@
+# Mock AQARAT backend API (validates Keycloak tokens itself). Image built and pushed by 01-build-push.sh.
+# __KEYCLOAK_SVC_IP__ is filled in by 03-deploy.sh: the API fetches Keycloak's JWKS by its public name.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sso-mock-api
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-mock-api}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: sso-mock-api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-mock-api}
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      hostAliases:
+        - {ip: "__KEYCLOAK_SVC_IP__", hostnames: [keycloak.aqarat.lab]}
+      containers:
+        - name: api
+          image: image-registry.openshift-image-registry.svc:5000/aqarat/aqarat-sso-mock-api:__TAG__
+          env:
+            - {name: PORT, value: "8444"}
+            - {name: OIDC_ISSUER, value: "https://keycloak.aqarat.lab/realms/aqarat-poc"}
+            - {name: API_AUDIENCE, value: aqarat-api}
+            - {name: ALLOWED_ORIGIN, value: "https://portal.aqarat.lab"}
+            - {name: RATE_LIMIT_PER_MIN, value: "100"}
+            - name: APPIAN_API_KEY
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: APPIAN_API_KEY}}
+            - {name: NODE_EXTRA_CA_CERTS, value: /certs/ca.crt}
+          ports:
+            - {name: https, containerPort: 8444}
+          volumeMounts:
+            - {name: tls, mountPath: /certs, readOnly: true}
+          readinessProbe:
+            tcpSocket: {port: 8444}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+      volumes:
+        - name: tls
+          secret: {secretName: aqarat-tls, defaultMode: 0440}

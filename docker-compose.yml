@@ -41,6 +41,9 @@ services:
       # Placeholders resolved inside keycloak/realms/*.json at import time.
       NAS_CLIENT_SECRET: ${NAS_CLIENT_SECRET:?set in .env}
       DEV_TESTER_PASSWORD: ${DEV_TESTER_PASSWORD:?set in .env}
+      # Public URLs placed into the realm files at import (OpenShift sets the port-less ones).
+      AQ_PORTAL_URL: https://portal.aqarat.lab:4200
+      AQ_NAS_URL: https://nas.aqarat.lab:8445
     ports:
       - "8443:8443"
     volumes:
@@ -76,6 +79,7 @@ services:
       # Placeholders resolved inside keycloak/realms-nas/nas.json at import time.
       NAS_CLIENT_SECRET: ${NAS_CLIENT_SECRET:?set in .env}
       MOCK_USER_PASSWORD: ${MOCK_USER_PASSWORD:?set in .env}
+      AQ_KEYCLOAK_URL: https://keycloak.aqarat.lab:8443
     ports:
       - "8445:8445"
     volumes:

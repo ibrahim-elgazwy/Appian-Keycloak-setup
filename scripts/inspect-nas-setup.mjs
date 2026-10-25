@@ -1,9 +1,10 @@
 // Admin-API check that both realms were imported as intended (user profile, personas, broker `nas`).
 // Run from appian-keyclock/:  NODE_EXTRA_CA_CERTS=certs/ca.crt node scripts/inspect-nas-setup.mjs
+// Other targets: set AQ_KEYCLOAK_URL, AQ_NAS_URL and ENV_FILE (see openshift/04-verify.sh).
 import { readFileSync } from 'node:fs';
 
 const env = Object.fromEntries(
-  readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => /^\w+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
+  readFileSync(process.env.ENV_FILE ?? '.env', 'utf8').split(/\r?\n/).filter((l) => /^\w+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
 );
 async function admin(base) {
   const r = await fetch(`${base}/realms/master/protocol/openid-connect/token`, {
@@ -16,7 +17,7 @@ async function admin(base) {
 let fail = 0;
 const check = (name, ok, got) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : `  (got ${JSON.stringify(got)})`}`); if (!ok) fail++; };
 
-const nas = await admin('https://nas.aqarat.lab:8445');
+const nas = await admin(process.env.AQ_NAS_URL ?? 'https://nas.aqarat.lab:8445');
 const nasProfile = (await nas('nas/users/profile')).attributes.map((a) => a.name);
 check('nas user profile declares qid + NAS attributes', ['qid', 'name_ar', 'nationality', 'user_type', 'phoneNumber'].every((n) => nasProfile.includes(n)), nasProfile);
 const ahmed = (await nas('nas/users?username=28463400001&exact=true'))[0];
@@ -27,7 +28,7 @@ const client = (await nas('nas/clients?clientId=aqarat-sso'))[0];
 check('client aqarat-sso: confidential, PKCE S256, no refresh tokens',
   client && !client.publicClient && client.attributes['pkce.code.challenge.method'] === 'S256' && client.attributes['use.refresh.tokens'] === 'false', client?.attributes);
 
-const kc = await admin('https://keycloak.aqarat.lab:8443');
+const kc = await admin(process.env.AQ_KEYCLOAK_URL ?? 'https://keycloak.aqarat.lab:8443');
 const pocProfile = (await kc('aqarat-poc/users/profile')).attributes;
 const nid = pocProfile.find((a) => a.name === 'national_id');
 check('aqarat-poc profile: national_id required + admin-only edit', !!nid?.required && JSON.stringify(nid.permissions.edit) === '["admin"]', nid);

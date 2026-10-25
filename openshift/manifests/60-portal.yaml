@@ -1,0 +1,49 @@
+# AQARAT portal (Angular build on unprivileged nginx). Image built and pushed by 01-build-push.sh.
+# /config.json gives the port-less URLs; set processModelUuid here too once the Appian process model exists.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sso-portal-config
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-portal}
+data:
+  config.json: |
+    {
+      "keycloakAuthority": "https://keycloak.aqarat.lab/realms/aqarat-poc",
+      "apiBaseUrl": "https://api.aqarat.lab/",
+      "appianBaseUrl": "https://appian.aqarat.lab"
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sso-portal
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-portal}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: sso-portal}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-portal}
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: nginx
+          image: image-registry.openshift-image-registry.svc:5000/aqarat/aqarat-sso-portal:__TAG__
+          ports:
+            - {name: https, containerPort: 4200}
+          volumeMounts:
+            - {name: tls, mountPath: /etc/nginx/certs, readOnly: true}
+            - {name: config, mountPath: /usr/share/nginx/html/config.json, subPath: config.json, readOnly: true}
+          readinessProbe:
+            httpGet: {path: /, port: 4200, scheme: HTTPS}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+      volumes:
+        - name: tls
+          secret: {secretName: aqarat-tls, defaultMode: 0440}
+        - name: config
+          configMap: {name: sso-portal-config}

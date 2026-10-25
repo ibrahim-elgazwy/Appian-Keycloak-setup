@@ -110,6 +110,12 @@ docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
 - **Install safety:** `install` refuses the common mix-ups: the CA certificate or the CSR in place of the issued certificate, a dev-CA certificate, or a certificate for another key.
 - **Git hygiene:** `install` marks `certs/tls.crt` and `certs/ca.crt` as skip-worktree, so the server's certificates are never committed. `certs/adcs/` and `certs/backup-*/` are gitignored.
 
+## OpenShift deployment (lab cluster, project `aqarat`)
+
+The same stack also runs on the lab OpenShift cluster (192.168.52.12) on port-less URLs such as
+`https://keycloak.aqarat.lab`. Run the numbered scripts in `openshift/` (build and push, secrets, deploy, verify,
+Appian values). See [openshift/README.md](openshift/README.md).
+
 ## Dev-only items to remove before any shared environment
 
 - Keycloak client `aqarat-dev-tester` (direct grant) and user `local_dev.tester`.

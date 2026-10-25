@@ -1,0 +1,51 @@
+# In-cluster services. Port 443 on each service maps to the pod's TLS port, so pods that reach a public name through
+# hostAliases (e.g. keycloak -> nas.aqarat.lab) use the same URL as browsers: https://<name>.aqarat.lab (no port).
+apiVersion: v1
+kind: Service
+metadata:
+  name: sso-postgres
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-postgres}
+spec:
+  selector: {app.kubernetes.io/name: sso-postgres}
+  ports:
+    - {name: postgres, port: 5432, targetPort: 5432}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sso-keycloak
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-keycloak}
+spec:
+  selector: {app.kubernetes.io/name: sso-keycloak}
+  ports:
+    - {name: https, port: 443, targetPort: 8443}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sso-mock-nas
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-mock-nas}
+spec:
+  selector: {app.kubernetes.io/name: sso-mock-nas}
+  ports:
+    - {name: https, port: 443, targetPort: 8445}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sso-mock-api
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-mock-api}
+spec:
+  selector: {app.kubernetes.io/name: sso-mock-api}
+  ports:
+    - {name: https, port: 443, targetPort: 8444}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sso-portal
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-portal}
+spec:
+  selector: {app.kubernetes.io/name: sso-portal}
+  ports:
+    - {name: https, port: 443, targetPort: 4200}

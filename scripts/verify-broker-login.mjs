@@ -3,17 +3,19 @@
 //  2) Broker sign-in for every persona: portal client -> Keycloak (aqarat-poc) -> broker `nas` -> code + PKCE.
 //  3) Wrong broker client secret (N8): temporarily breaks the IdP secret through the admin API, then restores it.
 // Run from appian-keyclock/:  NODE_EXTRA_CA_CERTS=certs/ca.crt node scripts/verify-broker-login.mjs
+// Other targets: set AQ_KEYCLOAK_URL, AQ_NAS_URL, AQ_PORTAL_URL and ENV_FILE (see openshift/04-verify.sh).
 import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 const env = Object.fromEntries(
-  readFileSync('.env', 'utf8').split(/\r?\n/).filter((l) => /^\w+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
+  readFileSync(process.env.ENV_FILE ?? '.env', 'utf8').split(/\r?\n/).filter((l) => /^\w+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
 );
-const KC_BASE = 'https://keycloak.aqarat.lab:8443';
+const KC_BASE = process.env.AQ_KEYCLOAK_URL ?? 'https://keycloak.aqarat.lab:8443';
+const NAS_BASE = process.env.AQ_NAS_URL ?? 'https://nas.aqarat.lab:8445';
 const KC = `${KC_BASE}/realms/aqarat-poc/protocol/openid-connect`;
-const NAS = 'https://nas.aqarat.lab:8445/realms/nas/protocol/openid-connect';
+const NAS = `${NAS_BASE}/realms/nas/protocol/openid-connect`;
 const BROKER_ENDPOINT = `${KC_BASE}/realms/aqarat-poc/broker/nas/endpoint`;
-const REDIRECT = 'https://portal.aqarat.lab:4200/callback';
+const REDIRECT = `${process.env.AQ_PORTAL_URL ?? 'https://portal.aqarat.lab:4200'}/callback`;
 const b64json = (jwt) => JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url'));
 const pkce = () => {
   const verifier = randomBytes(32).toString('base64url');
@@ -114,7 +116,7 @@ const check = (name, ok, detail) => {
   const id = tokens.id_token ? b64json(tokens.id_token) : {};
   const shown = Object.fromEntries(Object.entries(id).filter(([k]) => !['exp', 'iat', 'jti', 'nonce', 'sid', 'at_hash', 'auth_time', 'typ', 'azp'].includes(k)));
   console.log('NAS ID token (contract sample):\n' + JSON.stringify(shown, null, 2));
-  check('contract: issuer is the NAS realm', id.iss === 'https://nas.aqarat.lab:8445/realms/nas', id.iss);
+  check('contract: issuer is the NAS realm', id.iss === `${NAS_BASE}/realms/nas`, id.iss);
   check('contract: aud = aqarat-sso', [].concat(id.aud).includes('aqarat-sso'), id.aud);
   check('contract: qid claim = 28463400001', id.qid === '28463400001', id.qid);
   check('contract: sub is opaque (not the QID)', id.sub && id.sub !== id.qid, id.sub);

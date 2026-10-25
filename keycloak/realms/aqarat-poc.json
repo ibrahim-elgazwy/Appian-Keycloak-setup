@@ -685,14 +685,14 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
-        "https://portal.aqarat.lab:4200/callback"
+        "${AQ_PORTAL_URL}/callback"
       ],
       "webOrigins": [
-        "https://portal.aqarat.lab:4200"
+        "${AQ_PORTAL_URL}"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://portal.aqarat.lab:4200##https://portal.aqarat.lab:4200/"
+        "post.logout.redirect.uris": "${AQ_PORTAL_URL}##${AQ_PORTAL_URL}/"
       },
       "defaultClientScopes": [
         "web-origins",
@@ -722,7 +722,7 @@
         "https://appian.aqarat.lab/suite/*"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "https://appian.aqarat.lab/suite/*##https://portal.aqarat.lab:4200/*"
+        "post.logout.redirect.uris": "https://appian.aqarat.lab/suite/*##${AQ_PORTAL_URL}/*"
       },
       "defaultClientScopes": [
         "web-origins",
@@ -788,12 +788,12 @@
       "hideOnLogin": false,
       "firstBrokerLoginFlowAlias": "first broker login",
       "config": {
-        "issuer": "https://nas.aqarat.lab:8445/realms/nas",
-        "authorizationUrl": "https://nas.aqarat.lab:8445/realms/nas/protocol/openid-connect/auth",
-        "tokenUrl": "https://nas.aqarat.lab:8445/realms/nas/protocol/openid-connect/token",
-        "userInfoUrl": "https://nas.aqarat.lab:8445/realms/nas/protocol/openid-connect/userinfo",
-        "logoutUrl": "https://nas.aqarat.lab:8445/realms/nas/protocol/openid-connect/logout",
-        "jwksUrl": "https://nas.aqarat.lab:8445/realms/nas/protocol/openid-connect/certs",
+        "issuer": "${AQ_NAS_URL}/realms/nas",
+        "authorizationUrl": "${AQ_NAS_URL}/realms/nas/protocol/openid-connect/auth",
+        "tokenUrl": "${AQ_NAS_URL}/realms/nas/protocol/openid-connect/token",
+        "userInfoUrl": "${AQ_NAS_URL}/realms/nas/protocol/openid-connect/userinfo",
+        "logoutUrl": "${AQ_NAS_URL}/realms/nas/protocol/openid-connect/logout",
+        "jwksUrl": "${AQ_NAS_URL}/realms/nas/protocol/openid-connect/certs",
         "useJwksUrl": "true",
         "validateSignature": "true",
         "clientId": "aqarat-sso",
