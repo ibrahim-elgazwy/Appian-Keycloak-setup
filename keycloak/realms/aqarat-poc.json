@@ -692,7 +692,7 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "${AQ_PORTAL_URL}##${AQ_PORTAL_URL}/"
+        "post.logout.redirect.uris": "${AQ_PORTAL_URL}##${AQ_PORTAL_URL}/##${AQ_PORTAL_URL}/signin"
       },
       "defaultClientScopes": [
         "web-origins",
