@@ -1,0 +1,39 @@
+# Lab server overrides (see ../.claude/docs/07-lab-server-deployment.md). Laptop use is unchanged: run only docker-compose.yml.
+# On the server:  docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
+#   or set COMPOSE_FILE=docker-compose.yml:docker-compose.server.yml in .env and use plain `docker compose ...`.
+# Adds: the portal container (nginx, production build, replaces `ng serve`), restart policies and log rotation.
+# Hostnames and ports are the same as on the laptop, so realm files, redirect URIs and CORS origins do not change.
+
+x-server-defaults: &server-defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  postgres:
+    <<: *server-defaults
+
+  keycloak:
+    <<: *server-defaults
+
+  mock-nas:
+    <<: *server-defaults
+
+  mock-api:
+    <<: *server-defaults
+
+  portal:
+    <<: *server-defaults
+    build: ./portal
+    user: "1000:0"          # unprivileged nginx; same uid as the key owner set by scripts/server-cert.sh
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./certs/tls.crt:/etc/nginx/certs/tls.crt:ro
+      - ./certs/tls.key:/etc/nginx/certs/tls.key:ro

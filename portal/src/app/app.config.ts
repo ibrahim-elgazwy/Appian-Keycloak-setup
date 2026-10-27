@@ -16,7 +16,7 @@ export const appConfig: ApplicationConfig = {
           authority: settings.keycloakAuthority,
           clientId: settings.clientId,
           redirectUrl: `${window.location.origin}/callback`,
-          postLogoutRedirectUri: window.location.origin,
+          postLogoutRedirectUri: `${window.location.origin}/signin`, // AQARAT sign-in page
           scope: 'openid profile email aqarat-api',
           responseType: 'code', // Authorization Code + PKCE
           silentRenew: true,

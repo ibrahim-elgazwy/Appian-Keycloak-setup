@@ -1,9 +1,11 @@
-<header>
-  <a class="brand" routerLink="/">AQARAT <span>portal POC</span></a>
-  @if ((auth.isAuthenticated$ | async)?.isAuthenticated) {
-    <button (click)="signOut()">Sign out</button>
-  }
-</header>
+@if (!fullPage()) {
+  <header>
+    <a class="brand" routerLink="/">AQARAT <span>portal POC</span></a>
+    @if ((auth.isAuthenticated$ | async)?.isAuthenticated) {
+      <button (click)="signOut()">Sign out</button>
+    }
+  </header>
+}
 <main>
   <router-outlet />
 </main>

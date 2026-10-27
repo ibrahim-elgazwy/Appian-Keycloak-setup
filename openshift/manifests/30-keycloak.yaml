@@ -1,0 +1,76 @@
+# Keycloak (realm aqarat-poc), same image and settings as docker-compose.yml, but on port-less public URLs.
+# __NAS_SVC_IP__ is filled in by 03-deploy.sh: Keycloak calls the mock NAS by its public name (TLS name check).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sso-keycloak
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-keycloak}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: sso-keycloak}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-keycloak}
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      hostAliases:
+        - {ip: "__NAS_SVC_IP__", hostnames: [nas.aqarat.lab]}
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.8.1
+          args: [start, --import-realm]
+          env:
+            - {name: KC_DB, value: postgres}
+            - {name: KC_DB_URL, value: "jdbc:postgresql://sso-postgres:5432/keycloak"}
+            - {name: KC_DB_USERNAME, value: keycloak}
+            - name: KC_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: KC_DB_PASSWORD}}
+            # Issuer = https://keycloak.aqarat.lab/realms/<realm>; identical for browser, Appian and the backend API.
+            - {name: KC_HOSTNAME, value: "https://keycloak.aqarat.lab"}
+            - {name: KC_HTTPS_PORT, value: "8443"}
+            - {name: KC_HTTP_ENABLED, value: "false"}
+            - {name: KC_HTTPS_CERTIFICATE_FILE, value: /opt/keycloak/conf/certs/tls.crt}
+            - {name: KC_HTTPS_CERTIFICATE_KEY_FILE, value: /opt/keycloak/conf/certs/tls.key}
+            - {name: KC_TRUSTSTORE_PATHS, value: /opt/keycloak/conf/certs/ca.crt}
+            - {name: KC_HEALTH_ENABLED, value: "true"}
+            # HTTP/1.1 only: shared IP + certificate + SNI routing; HTTP/2 connection reuse would reach the wrong pod.
+            - {name: QUARKUS_HTTP_HTTP2, value: "false"}
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: KC_ADMIN_USERNAME}}
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: KC_ADMIN_PASSWORD}}
+            # Placeholders resolved inside the realm file at import time.
+            - name: NAS_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: NAS_CLIENT_SECRET}}
+            - name: DEV_TESTER_PASSWORD
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: DEV_TESTER_PASSWORD}}
+            - {name: AQ_PORTAL_URL, value: "https://portal.aqarat.lab"}
+            - {name: AQ_NAS_URL, value: "https://nas.aqarat.lab"}
+          ports:
+            - {name: https, containerPort: 8443}
+            - {name: management, containerPort: 9000}
+          volumeMounts:
+            - {name: tls, mountPath: /opt/keycloak/conf/certs, readOnly: true}
+            - {name: realm, mountPath: /opt/keycloak/data/import, readOnly: true}
+          startupProbe:                 # first start builds Keycloak and imports the realm
+            httpGet: {path: /health/started, port: 9000, scheme: HTTPS}
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /health/ready, port: 9000, scheme: HTTPS}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health/live, port: 9000, scheme: HTTPS}
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests: {cpu: 250m, memory: 768Mi}
+            limits: {memory: 1536Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+      volumes:
+        - name: tls
+          secret: {secretName: aqarat-tls, defaultMode: 0440}
+        - name: realm
+          configMap: {name: sso-realm-aqarat-poc}

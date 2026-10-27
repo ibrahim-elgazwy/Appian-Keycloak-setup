@@ -87,6 +87,35 @@ Then, in the Appian Admin Console:
 - **Embedded Interfaces:** allow origin `https://portal.aqarat.lab:4200`.
 - Create the test process model, give group `AQARAT Brokers` initiator rights, and put its UUID in `portal/src/app/settings.ts`.
 
+## Lab server deployment
+
+Full runbook: `../.claude/docs/07-lab-server-deployment.md`. The laptop workflow above is unchanged. The server adds three files:
+
+| File | Purpose |
+|---|---|
+| `docker-compose.server.yml` | Override for the server: adds the **portal** container, `restart: unless-stopped` and log rotation (10 MB × 5) on every service |
+| `portal/Dockerfile`, `portal/nginx.conf` | Production build of the portal, served by nginx on `https://portal.aqarat.lab:4200`. Same origin as `ng serve`, so no realm or CORS changes. Has an SPA fallback, security headers, no-store `index.html`, cached hashed bundles and a health check. |
+| `scripts/server-cert.sh` | Certificate from **AQ-DC01-CA** for `keycloak.`, `portal.`, `api.` and `nas.aqarat.lab` |
+
+```bash
+# on the server, in the clone
+bash scripts/server-cert.sh request                                   # key + certs/adcs/sso.csr (key never leaves the server)
+#   on a domain machine: certreq -submit -attrib "CertificateTemplate:WebServer" sso.csr sso.cer ; certutil -ca.cert aq-dc01-ca.cer
+bash scripts/server-cert.sh install sso.cer aq-dc01-ca.cer            # checks issuer/chain/key/SANs, backs up, installs tls.crt, tls.key, ca.crt
+bash scripts/server-cert.sh status
+docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
+```
+
+- **Simpler commands:** put `COMPOSE_FILE=docker-compose.yml:docker-compose.server.yml` in the server's `.env` to use plain `docker compose ...`.
+- **Install safety:** `install` refuses the common mix-ups: the CA certificate or the CSR in place of the issued certificate, a dev-CA certificate, or a certificate for another key.
+- **Git hygiene:** `install` marks `certs/tls.crt` and `certs/ca.crt` as skip-worktree, so the server's certificates are never committed. `certs/adcs/` and `certs/backup-*/` are gitignored.
+
+## OpenShift deployment (lab cluster, project `aqarat`)
+
+The same stack also runs on the lab OpenShift cluster (192.168.52.12) on port-less URLs such as
+`https://keycloak.aqarat.lab`. Run the numbered scripts in `openshift/` (build and push, secrets, deploy, verify,
+Appian values). See [openshift/README.md](openshift/README.md).
+
 ## Dev-only items to remove before any shared environment
 
 - Keycloak client `aqarat-dev-tester` (direct grant) and user `local_dev.tester`.

@@ -1,0 +1,45 @@
+# Public names on the cluster router (https, port 443). Passthrough: the router forwards TLS untouched, so each pod
+# presents the certificate from the aqarat-tls Secret (dev CA now, AQ-DC01-CA later) and nothing else changes.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: sso-keycloak
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-keycloak}
+spec:
+  host: keycloak.aqarat.lab
+  to: {kind: Service, name: sso-keycloak}
+  port: {targetPort: https}
+  tls: {termination: passthrough}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: sso-mock-nas
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-mock-nas}
+spec:
+  host: nas.aqarat.lab
+  to: {kind: Service, name: sso-mock-nas}
+  port: {targetPort: https}
+  tls: {termination: passthrough}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: sso-mock-api
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-mock-api}
+spec:
+  host: api.aqarat.lab
+  to: {kind: Service, name: sso-mock-api}
+  port: {targetPort: https}
+  tls: {termination: passthrough}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: sso-portal
+  labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-portal}
+spec:
+  host: portal.aqarat.lab
+  to: {kind: Service, name: sso-portal}
+  port: {targetPort: https}
+  tls: {termination: passthrough}

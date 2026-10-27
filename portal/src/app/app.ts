@@ -1,6 +1,8 @@
 import { Component, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { AsyncPipe } from '@angular/common';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { APPIAN_BOOTSTRAP_FLAG } from './appian/appian-session.guard';
 
@@ -12,6 +14,14 @@ import { APPIAN_BOOTSTRAP_FLAG } from './appian/appian-session.guard';
 })
 export class App {
   protected readonly auth = inject(OidcSecurityService);
+  // /signin is a full-page design without the portal header.
+  protected readonly fullPage = toSignal(
+    inject(Router).events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects.startsWith('/signin')),
+    ),
+    { initialValue: location.pathname.startsWith('/signin') },
+  );
 
   signOut() {
     // Portal + Keycloak end_session. Appian's own session is ended by Appian's OIDC

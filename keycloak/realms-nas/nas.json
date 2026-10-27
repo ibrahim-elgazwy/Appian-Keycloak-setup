@@ -606,13 +606,13 @@
       "frontchannelLogout": false,
       "fullScopeAllowed": false,
       "redirectUris": [
-        "https://keycloak.aqarat.lab:8443/realms/aqarat-poc/broker/nas/endpoint"
+        "${AQ_KEYCLOAK_URL}/realms/aqarat-poc/broker/nas/endpoint"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "use.refresh.tokens": "false",
         "id.token.signed.response.alg": "RS256",
-        "post.logout.redirect.uris": "https://keycloak.aqarat.lab:8443/realms/aqarat-poc/broker/nas/endpoint/logout_response",
+        "post.logout.redirect.uris": "${AQ_KEYCLOAK_URL}/realms/aqarat-poc/broker/nas/endpoint/logout_response",
         "backchannel.logout.session.required": "false"
       },
       "protocolMappers": [
