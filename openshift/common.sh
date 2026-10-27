@@ -6,7 +6,7 @@ NS=${NS:-aqarat}
 REGISTRY=${REGISTRY:-default-route-openshift-image-registry.apps-crc.testing}   # external route (push from a PC)
 CLUSTER_IP=${CLUSTER_IP:-192.168.52.12}                                         # router: *.aqarat.lab -> here
 TAG=${TAG:-$(git rev-parse --short HEAD)}
-IMAGES=(aqarat-sso-mock-api:mock-api aqarat-sso-portal:portal)                   # <image name>:<build folder>
+IMAGES=(aqarat-sso-mock-api:mock-api aqarat-sso-portal:portal aqarat-sso-keycloak:keycloak)  # <image name>:<build folder>
 PATH=$HOME/bin:$PATH
 
 die() { echo "ERROR: $*" >&2; exit 1; }

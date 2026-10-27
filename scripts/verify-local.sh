@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke checks for the local stack (Keycloak, mock NAS, mock backend API, test T11).
+# Smoke checks for the local stack (Keycloak, mock NAS, mock backend API, test T11, Role API).
 # Run from appian-keyclock/:  bash scripts/verify-local.sh
 # Other targets (e.g. OpenShift, see openshift/04-verify.sh): set AQ_KEYCLOAK_URL, AQ_NAS_URL, AQ_API_URL, AQ_PORTAL_URL,
 # ENV_FILE (secrets) and optionally AQ_RESOLVE_IP (reach the hosts at that IP without hosts-file entries).
@@ -47,6 +47,13 @@ check "Appian call: user token not sent to Appian" "$(curl "${C[@]}" -H "Authori
 check "Appian call: backend uses its API key" "$(curl "${C[@]}" -H "Authorization: Bearer $GOOD" $API/appian/properties | json 'd=>d.outboundHeaderNames.includes("appian-api-key")')" true
 check "CORS portal origin allowed" "$(curl "${C[@]}" -o /dev/null -D - -X OPTIONS -H "Origin: $ORIGIN" -H 'Access-Control-Request-Method: GET' $API/aqarat/me | grep -ci "^access-control-allow-origin: $ORIGIN")" 1
 check "CORS other origin refused" "$(curl "${C[@]}" -o /dev/null -D - -X OPTIONS -H 'Origin: https://evil.example' -H 'Access-Control-Request-Method: GET' $API/aqarat/me | grep -ci '^access-control-allow-origin' || true)" 0
+
+ROLES=$API/internal/v1/users/28463400001/roles
+check "Role API: no service key -> 401" "$(code $ROLES)" 401
+check "Role API: wrong service key -> 401" "$(code -H 'X-Role-Api-Key: wrong' $ROLES)" 401
+check "Role API: Keycloak's key -> roles" "$(curl "${C[@]}" -H "X-Role-Api-Key: $ROLE_API_KEY" $ROLES | json 'd=>d.roles.join()')" PROPERTY_OWNER
+check "Role API: not open to browsers (no CORS)" "$(curl "${C[@]}" -o /dev/null -D - -H "Origin: $ORIGIN" -H "X-Role-Api-Key: $ROLE_API_KEY" $ROLES | grep -ci '^access-control-allow-origin' || true)" 0
+check "properties: valid token without PROPERTY_OWNER -> 403" "$(code -H "Authorization: Bearer $GOOD" $API/aqarat/properties)" 403
 
 echo "----- $pass passed, $fail failed"
 [ "$fail" = 0 ]

@@ -2,6 +2,8 @@
 //  1) NAS contract: log in at the mock NAS directly as the broker client and inspect the ID token it returns.
 //  2) Broker sign-in for every persona: portal client -> Keycloak (aqarat-poc) -> broker `nas` -> code + PKCE.
 //  3) Wrong broker client secret (N8): temporarily breaks the IdP secret through the admin API, then restores it.
+//  4) External roles (R1-R7): roles from the Role API at NAS login, stored as client roles of aqarat-roles, in the tokens;
+//     fail-closed when the Role API errors or is too slow.
 // Run from appian-keyclock/:  NODE_EXTRA_CA_CERTS=certs/ca.crt node scripts/verify-broker-login.mjs
 // Other targets: set AQ_KEYCLOAK_URL, AQ_NAS_URL, AQ_PORTAL_URL and ENV_FILE (see openshift/04-verify.sh).
 import { createHash, randomBytes } from 'node:crypto';
@@ -136,13 +138,14 @@ async function brokerLogin(username) {
     client_id: 'aqarat-portal', redirect_uri: REDIRECT, response_type: 'code', state: 's1', nonce: 'n1',
     scope: 'openid profile email aqarat-api', code_challenge: challenge, code_challenge_method: 'S256', kc_idp_hint: 'nas',
   });
+  const started = Date.now();
   const r = await signIn(go, auth, username, REDIRECT);
-  if (!r.code) return r;
+  if (!r.code) return { ...r, ms: Date.now() - started };
   const tokens = await (await fetch(`${KC}/token`, {
     method: 'POST',
     body: new URLSearchParams({ grant_type: 'authorization_code', client_id: 'aqarat-portal', code: r.code, redirect_uri: REDIRECT, code_verifier: verifier }),
   })).json();
-  return { claims: b64json(tokens.access_token) };
+  return { claims: b64json(tokens.access_token), idClaims: b64json(tokens.id_token), ms: Date.now() - started };
 }
 async function localUser(username) {
   const u = (await api(`users?username=${encodeURIComponent(username)}&exact=true`))[0];
@@ -151,14 +154,23 @@ async function localUser(username) {
   return { ...u, groups: groups.map((g) => g.path) };
 }
 
+// roles = what the mock Role API returns after Keycloak's allow-list (29581800003 also gets SUPER_ADMIN, which is dropped).
 const personas = [
-  { user: '28463400001', test: 'N1 citizen', expect: 'ok' },
-  { user: '29035600002', test: 'resident', expect: 'ok' },
-  { user: '29581800003', test: 'N3 resident without email', expect: 'ok' },
-  { user: '30163400004', test: 'unverified email', expect: 'ok' },
+  { user: '28463400001', test: 'N1 citizen', expect: 'ok', roles: ['PROPERTY_OWNER'] },
+  { user: '29035600002', test: 'resident', expect: 'ok', roles: ['BROKER'] },
+  { user: '29581800003', test: 'N3 resident without email', expect: 'ok', roles: ['BROKER', 'PROPERTY_OWNER'] },
+  { user: '30163400004', test: 'unverified email', expect: 'ok', roles: [] },
   { user: 'noqid.test', test: 'N4 no QID -> refused', expect: 'refused' },
   { user: '28863400006', test: 'N5 disabled at NAS', expect: 'refused' },
+  { user: '28463400007', test: 'R5 Role API error -> refused', expect: 'roles-refused' },
+  { user: '28463400008', test: 'R6 Role API too slow -> refused', expect: 'roles-refused' },
 ];
+const sorted = (a) => [].concat(a ?? []).sort();
+const same = (a, b) => JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
+const rolesClient = (await api('clients?clientId=aqarat-roles'))[0];
+async function storedRoles(userId) {
+  return (await api(`users/${userId}/role-mappings/clients/${rolesClient.id}`)).map((r) => r.name);
+}
 for (const p of personas) {
   const r = await brokerLogin(p.user);
   if (p.expect === 'ok') {
@@ -169,7 +181,15 @@ for (const p of personas) {
       check(`${p.test}: national_id, Arabic name, group, email not trusted`,
         u.attributes?.national_id?.[0] === p.user && !!u.attributes?.name_ar && u.groups.includes('/external-users') && u.emailVerified === false,
         { national_id: u.attributes?.national_id, name_ar: u.attributes?.name_ar, user_type: u.attributes?.user_type, groups: u.groups, emailVerified: u.emailVerified });
+      check(`${p.test}: R1 roles stored in Keycloak (client aqarat-roles)`, same(await storedRoles(u.id), p.roles), await storedRoles(u.id));
+      check(`${p.test}: R2 aqarat_roles in the backend access token`, same(r.claims.aqarat_roles, p.roles), r.claims.aqarat_roles ?? '(absent)');
+      check(`${p.test}: R2 aqarat_roles not in the portal ID token`, !('aqarat_roles' in r.idClaims), '');
     }
+  } else if (p.expect === 'roles-refused') {
+    const u = await localUser(`ext_${p.user}`);
+    check(`${p.test}`, !r.claims && /permissions could not be checked/i.test(r.message ?? ''), r.claims ? 'signed in anyway' : `${r.stopped}: ${r.message}`);
+    check(`${p.test}: no roles stored`, !u || (await storedRoles(u.id)).length === 0, u ? await storedRoles(u.id) : 'no account');
+    check(`${p.test}: answered within 4 s`, r.ms < 4000, `${r.ms} ms`);
   } else {
     const leaked = (await api('users?search=ext_&max=100')).filter((u) => !/^ext_\d{11}$/.test(u.username)).map((u) => u.username);
     check(`${p.test}`, !r.claims, r.claims ? { unexpected: r.claims.preferred_username } : `${r.stopped}: ${r.message}`);
@@ -189,6 +209,21 @@ for (const p of personas) {
   }
   const again = await brokerLogin('28463400001');
   check('N8 secret restored -> login works again', again.claims?.preferred_username === 'ext_28463400001', '');
+}
+
+// ---------- 4. External roles: revocation and the Appian token ----------
+{
+  const u = await localUser('ext_28463400001');
+  const extra = await api(`clients/${rolesClient.id}/roles/DEVELOPER`);
+  await api(`users/${u.id}/role-mappings/clients/${rolesClient.id}`, { method: 'POST', body: JSON.stringify([extra]) });
+  const r = await brokerLogin('28463400001');
+  check('R4 role no longer returned by the Role API is removed at login',
+    same(await storedRoles(u.id), ['PROPERTY_OWNER']) && same(r.claims?.aqarat_roles, ['PROPERTY_OWNER']),
+    { stored: await storedRoles(u.id), token: r.claims?.aqarat_roles });
+  const appian = (await api('clients?clientId=aqarat-appian'))[0];
+  const id = await api(`clients/${appian.id}/evaluate-scopes/generate-example-id-token?userId=${u.id}&scope=openid`);
+  check('R3 aqarat_roles in the Appian ID token (group sync)', same(id.aqarat_roles, ['PROPERTY_OWNER']), id.aqarat_roles ?? '(absent)');
+  check('R7 role lookup adds little to a login', r.ms < 4000, `${r.ms} ms for the whole broker login`);
 }
 
 console.log(`----- ${failures === 0 ? 'all passed' : `${failures} failed`}`);

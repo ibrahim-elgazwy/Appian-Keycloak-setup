@@ -27,11 +27,12 @@ step "services"
 oc apply -f $M/10-services.yaml
 NAS_IP=$(oc get svc sso-mock-nas -o jsonpath='{.spec.clusterIP}')
 KC_IP=$(oc get svc sso-keycloak -o jsonpath='{.spec.clusterIP}')
-echo "nas.aqarat.lab -> $NAS_IP, keycloak.aqarat.lab -> $KC_IP (inside the cluster)"
+API_IP=$(oc get svc sso-mock-api -o jsonpath='{.spec.clusterIP}')
+echo "nas.aqarat.lab -> $NAS_IP, keycloak.aqarat.lab -> $KC_IP, api.aqarat.lab -> $API_IP (inside the cluster)"
 
 step "workloads and routes (tag $TAG)"
 for f in $M/20-postgres.yaml $M/30-keycloak.yaml $M/40-mock-nas.yaml $M/50-mock-api.yaml $M/60-portal.yaml $M/70-routes.yaml; do
-  sed -e "s/__NAS_SVC_IP__/$NAS_IP/g" -e "s/__KEYCLOAK_SVC_IP__/$KC_IP/g" -e "s/__TAG__/$TAG/g" "$f" | oc apply -f -
+  sed -e "s/__NAS_SVC_IP__/$NAS_IP/g" -e "s/__KEYCLOAK_SVC_IP__/$KC_IP/g" -e "s/__API_SVC_IP__/$API_IP/g" -e "s/__TAG__/$TAG/g" "$f" | oc apply -f -
 done
 
 DEPLOYS=(sso-postgres sso-keycloak sso-mock-nas sso-mock-api sso-portal)

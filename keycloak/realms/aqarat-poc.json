@@ -670,6 +670,21 @@
             "id.token.claim": "false",
             "introspection.token.claim": "true"
           }
+        },
+        {
+          "name": "aqarat_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "aqarat-roles",
+            "claim.name": "aqarat_roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
         }
       ]
     },
@@ -726,6 +741,21 @@
             "access.token.claim": "false",
             "introspection.token.claim": "true"
           }
+        },
+        {
+          "name": "aqarat_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "aqarat-roles",
+            "claim.name": "aqarat_roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "access.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
         }
       ]
     }
@@ -755,6 +785,24 @@
           "userSetupAllowed": false
         }
       ]
+    },
+    {
+      "id": "5f0c9d2e-7a41-4b8e-9c3d-1a2b3c4d5e61",
+      "alias": "nas post login - roles",
+      "description": "NAS post-login: fetch the user's roles from the AQARAT Role API before any token is created (fail-closed).",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "aqarat-external-roles",
+          "authenticatorConfig": "aqarat role api",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        }
+      ]
     }
   ],
   "authenticatorConfig": [
@@ -763,8 +811,41 @@
       "config": {
         "defaultProvider": "nas"
       }
+    },
+    {
+      "alias": "aqarat role api",
+      "config": {
+        "roleApiUrl": "${AQ_ROLE_API_URL}/internal/v1/users/{qid}/roles",
+        "allowedRoles": "PROPERTY_OWNER##BROKER##DEVELOPER##BROKER_ADMIN",
+        "rolesClientId": "aqarat-roles",
+        "idAttribute": "national_id",
+        "connectTimeoutMs": "1000",
+        "readTimeoutMs": "2000"
+      }
     }
   ],
+  "roles": {
+    "client": {
+      "aqarat-roles": [
+        {
+          "name": "PROPERTY_OWNER",
+          "description": "Owns registered property"
+        },
+        {
+          "name": "BROKER",
+          "description": "Licensed real-estate broker"
+        },
+        {
+          "name": "DEVELOPER",
+          "description": "Real-estate developer"
+        },
+        {
+          "name": "BROKER_ADMIN",
+          "description": "Broker office administrator"
+        }
+      ]
+    }
+  },
   "clients": [
     {
       "clientId": "aqarat-portal",
@@ -850,6 +931,20 @@
       "optionalClientScopes": [
         "aqarat-api"
       ]
+    },
+    {
+      "clientId": "aqarat-roles",
+      "name": "AQARAT external roles",
+      "description": "Holds the roles fetched from the AQARAT Role API at NAS login (flow 'nas post login - roles'). No sign-in.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false
     }
   ],
   "users": [
@@ -885,6 +980,7 @@
       "linkOnly": false,
       "hideOnLogin": false,
       "firstBrokerLoginFlowAlias": "first broker login",
+      "postBrokerLoginFlowAlias": "nas post login - roles",
       "config": {
         "issuer": "${AQ_NAS_URL}/realms/nas",
         "authorizationUrl": "${AQ_NAS_URL}/realms/nas/protocol/openid-connect/auth",

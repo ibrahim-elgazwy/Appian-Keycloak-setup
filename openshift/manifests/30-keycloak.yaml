@@ -1,5 +1,7 @@
 # Keycloak (realm aqarat-poc), same image and settings as docker-compose.yml, but on port-less public URLs.
-# __NAS_SVC_IP__ is filled in by 03-deploy.sh: Keycloak calls the mock NAS by its public name (TLS name check).
+# Image: Keycloak 26.8.1 + the AQARAT external-roles extension, built by 01-build-push.sh from keycloak/Dockerfile.
+# __NAS_SVC_IP__ / __API_SVC_IP__ are filled in by 03-deploy.sh: Keycloak calls the mock NAS and the Role API by their
+# public names (TLS name check).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,9 +19,10 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       hostAliases:
         - {ip: "__NAS_SVC_IP__", hostnames: [nas.aqarat.lab]}
+        - {ip: "__API_SVC_IP__", hostnames: [api.aqarat.lab]}
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:26.8.1
+          image: image-registry.openshift-image-registry.svc:5000/aqarat/aqarat-sso-keycloak:__TAG__
           args: [start, --import-realm]
           env:
             - {name: KC_DB, value: postgres}
@@ -48,6 +51,10 @@ spec:
               valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: DEV_TESTER_PASSWORD}}
             - {name: AQ_PORTAL_URL, value: "https://portal.aqarat.lab"}
             - {name: AQ_NAS_URL, value: "https://nas.aqarat.lab"}
+            # External Role API, called once per NAS login (flow "nas post login - roles"); the key is never in the realm.
+            - {name: AQ_ROLE_API_URL, value: "https://api.aqarat.lab"}
+            - name: AQ_ROLE_API_KEY
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: ROLE_API_KEY}}
           ports:
             - {name: https, containerPort: 8443}
             - {name: management, containerPort: 9000}

@@ -910,6 +910,90 @@
       ],
       "email": "disabled.test@example.qa",
       "emailVerified": true
+    },
+    {
+      "id": "9b2f4c1e-6a0d-4f7e-8c55-1d2e3f4a5b07",
+      "username": "28463400007",
+      "enabled": true,
+      "firstName": "RoleApi",
+      "lastName": "Error",
+      "attributes": {
+        "given_name_ar": [
+          "خطأ"
+        ],
+        "family_name_ar": [
+          "الصلاحيات"
+        ],
+        "name_ar": [
+          "خطأ الصلاحيات"
+        ],
+        "qid": [
+          "28463400007"
+        ],
+        "birthdate": [
+          "1990-05-20"
+        ],
+        "gender": [
+          "male"
+        ],
+        "nationality": [
+          "QAT"
+        ],
+        "user_type": [
+          "citizen"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${MOCK_USER_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "email": "roleapi.error@example.qa",
+      "emailVerified": false
+    },
+    {
+      "id": "9b2f4c1e-6a0d-4f7e-8c55-1d2e3f4a5b08",
+      "username": "28463400008",
+      "enabled": true,
+      "firstName": "RoleApi",
+      "lastName": "Slow",
+      "attributes": {
+        "given_name_ar": [
+          "بطء"
+        ],
+        "family_name_ar": [
+          "الصلاحيات"
+        ],
+        "name_ar": [
+          "بطء الصلاحيات"
+        ],
+        "qid": [
+          "28463400008"
+        ],
+        "birthdate": [
+          "1990-05-20"
+        ],
+        "gender": [
+          "male"
+        ],
+        "nationality": [
+          "QAT"
+        ],
+        "user_type": [
+          "citizen"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${MOCK_USER_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "email": "roleapi.slow@example.qa",
+      "emailVerified": false
     }
   ],
   "components": {

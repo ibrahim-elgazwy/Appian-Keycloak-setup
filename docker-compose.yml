@@ -17,7 +17,9 @@ services:
       retries: 20
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.1
+    # Keycloak 26.8.1 + the AQARAT external-roles extension (keycloak/Dockerfile).
+    build: ./keycloak
+    image: aqarat-sso-keycloak:local
     command: ["start", "--import-realm"]
     depends_on:
       postgres:
@@ -44,6 +46,9 @@ services:
       # Public URLs placed into the realm files at import (OpenShift sets the port-less ones).
       AQ_PORTAL_URL: https://portal.aqarat.lab:4200
       AQ_NAS_URL: https://nas.aqarat.lab:8445
+      # External Role API, called once per NAS login (flow "nas post login - roles"); the key is never in the realm.
+      AQ_ROLE_API_URL: https://api.aqarat.lab:8444
+      AQ_ROLE_API_KEY: ${ROLE_API_KEY:?set in .env}
     ports:
       - "8443:8443"
     volumes:
@@ -110,6 +115,8 @@ services:
       RATE_LIMIT_PER_MIN: "100"
       # The backend's own Appian Web API key (production: from Key Vault, never sent to the browser).
       APPIAN_API_KEY: ${APPIAN_API_KEY:-mock-appian-api-key}
+      # Service key Keycloak sends to the Role API (/internal/v1/users/{qid}/roles).
+      ROLE_API_KEY: ${ROLE_API_KEY:?set in .env}
       NODE_EXTRA_CA_CERTS: /certs/ca.crt
     ports:
       - "8444:8444"
@@ -117,6 +124,10 @@ services:
       - ./certs/tls.crt:/certs/tls.crt:ro
       - ./certs/tls.key:/certs/tls.key:ro
       - ./certs/ca.crt:/certs/ca.crt:ro
+    networks:
+      default:
+        aliases:
+          - api.aqarat.lab      # Keycloak calls the Role API by its public name (TLS name check)
 
 volumes:
   pgdata:

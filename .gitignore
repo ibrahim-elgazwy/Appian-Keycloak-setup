@@ -6,3 +6,4 @@ certs/backup-*/
 certs/*.srl
 node_modules/
 v1.2-guide
+keycloak/extensions/*/target/

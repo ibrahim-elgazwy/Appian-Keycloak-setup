@@ -27,6 +27,9 @@ spec:
             - {name: RATE_LIMIT_PER_MIN, value: "100"}
             - name: APPIAN_API_KEY
               valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: APPIAN_API_KEY}}
+            # Also the external Role API: Keycloak authenticates with this key.
+            - name: ROLE_API_KEY
+              valueFrom: {secretKeyRef: {name: aqarat-sso-env, key: ROLE_API_KEY}}
             - {name: NODE_EXTRA_CA_CERTS, value: /certs/ca.crt}
           ports:
             - {name: https, containerPort: 8444}

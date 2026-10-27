@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build the mock-api and portal images into the OpenShift registry (project aqarat), tagged with the git commit.
+# Build the mock-api, portal and keycloak (+ external-roles extension) images into the OpenShift registry (project aqarat),
+# tagged with the git commit.
 #   Default (BUILD=cluster): OpenShift builds them from the committed code (git archive -> binary Docker build).
 #     Needs only an oc login with the edit role; no Docker, registry login or insecure-registries setting.
 #   BUILD=docker: build locally and push. Needs the registry in Docker's insecure-registries and a registry login:
@@ -8,7 +9,7 @@
 source "$(dirname "$0")/common.sh"
 BUILD=${BUILD:-cluster}
 
-[ -z "$(git status --porcelain -- mock-api portal)" ] || echo "WARNING: uncommitted changes in mock-api/ or portal/ are not in the build"
+[ -z "$(git status --porcelain -- mock-api portal keycloak)" ] || echo "WARNING: uncommitted changes in mock-api/, portal/ or keycloak/ are not in the build"
 
 if [ "$BUILD" = docker ]; then
   grep -q "\"$REGISTRY\"" ~/.docker/config.json 2>/dev/null || die "no docker login for $REGISTRY (see the command at the top of this script)"
