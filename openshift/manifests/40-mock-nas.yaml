@@ -13,6 +13,8 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/part-of: aqarat-sso, app.kubernetes.io/name: sso-mock-nas}
+      # Checksum of nas.json (03-deploy.sh): a changed realm file restarts the pod, which re-imports it.
+      annotations: {aqarat.qa/nas-realm-sha256: "__NAS_REALM_SHA__"}
     spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:

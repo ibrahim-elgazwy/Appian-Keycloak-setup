@@ -20,10 +20,12 @@ step "secret aqarat-sso-env"
 tmp=$(umask 077; mktemp); trap 'rm -f "$tmp"' EXIT
 if oc get secret aqarat-sso-env >/dev/null 2>&1; then
   have=$(oc get secret aqarat-sso-env -o go-template='{{range $k,$v := .data}}{{$k}}{{"\n"}}{{end}}')
-  for v in "${GENERATED[@]}"; do grep -qx "$v" <<<"$have" || echo "$v=$(rand)"; done > "$tmp"
-  if [ -s "$tmp" ]; then
-    oc set data secret/aqarat-sso-env --from-env-file="$tmp" >/dev/null
-    echo "exists - added missing keys: $(cut -d= -f1 "$tmp" | paste -sd' ')"
+  # One private file per missing key (file name = key); `oc set data --from-file=<dir>` adds them all.
+  newkeys=$(umask 077; mktemp -d); trap 'rm -f "$tmp"; rm -rf "$newkeys"' EXIT
+  for v in "${GENERATED[@]}"; do grep -qx "$v" <<<"$have" || (umask 077; printf '%s' "$(rand)" > "$newkeys/$v"); done
+  if [ -n "$(ls -A "$newkeys")" ]; then
+    oc set data secret/aqarat-sso-env --from-file="$newkeys" >/dev/null
+    echo "exists - added missing keys: $(ls "$newkeys" | paste -sd' ')"
   else
     echo "exists - kept as is"
   fi
