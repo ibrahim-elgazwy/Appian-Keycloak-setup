@@ -189,7 +189,8 @@ for (const p of personas) {
     const u = await localUser(`ext_${p.user}`);
     check(`${p.test}`, !r.claims && /permissions could not be checked/i.test(r.message ?? ''), r.claims ? 'signed in anyway' : `${r.stopped}: ${r.message}`);
     check(`${p.test}: no roles stored`, !u || (await storedRoles(u.id)).length === 0, u ? await storedRoles(u.id) : 'no account');
-    check(`${p.test}: answered within 4 s`, r.ms < 4000, `${r.ms} ms`);
+    // Whole broker login incl. NAS (~2 s) + Keycloak's 2 s read timeout; without the timeout it would take > 7 s.
+    check(`${p.test}: answered within 5 s`, r.ms < 5000, `${r.ms} ms`);
   } else {
     const leaked = (await api('users?search=ext_&max=100')).filter((u) => !/^ext_\d{11}$/.test(u.username)).map((u) => u.username);
     check(`${p.test}`, !r.claims, r.claims ? { unexpected: r.claims.preferred_username } : `${r.stopped}: ${r.message}`);
